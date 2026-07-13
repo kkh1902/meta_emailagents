@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Mail, LayoutDashboard, Users, Settings, Clock, FileText, List, Network, BookOpen } from 'lucide-react'
+import { Mail, LayoutDashboard, Users, Settings, Clock, FileText, List, Network, BookOpen, SendHorizonal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const nav = [
@@ -10,6 +10,7 @@ const nav = [
   { href: '/accounts', label: '발송 계정', icon: Settings },
   { href: '/template', label: '메일 템플릿', icon: FileText },
   { href: '/schedule', label: '스케줄', icon: Clock },
+  { href: '/sent', label: '보낸 메일', icon: SendHorizonal },
   { href: '/logs', label: '발송 로그', icon: List },
   { href: '/architecture', label: '아키텍처', icon: Network },
   { href: '/docs', label: '문서', icon: BookOpen },

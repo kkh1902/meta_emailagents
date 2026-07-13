@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+email_agent.db
+email_agent.db-shm
+email_agent.db-wal

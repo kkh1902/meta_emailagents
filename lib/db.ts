@@ -37,13 +37,16 @@ function initDb(db: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       contact_id INTEGER, email TEXT, company TEXT,
       account_used TEXT, mail_type TEXT DEFAULT 'initial',
-      status TEXT, error_msg TEXT,
+      status TEXT, error_msg TEXT, subject TEXT,
       sent_at TEXT DEFAULT (datetime('now','localtime'))
     );
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY, value TEXT
     );
   `)
+  // 마이그레이션: subject 컬럼 추가
+  try { db.exec('ALTER TABLE send_logs ADD COLUMN subject TEXT') } catch {}
+
   const insert = db.prepare("INSERT OR IGNORE INTO settings VALUES (?, ?)")
   insert.run('schedule_active', '0')
   insert.run('daily_limit', '40')
