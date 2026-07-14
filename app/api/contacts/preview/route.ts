@@ -11,12 +11,11 @@ export function GET(req: NextRequest) {
   const contact = db.prepare('SELECT * FROM contacts WHERE id=?').get(Number(id)) as Record<string, string | null> | undefined
   if (!contact) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
-  const settings = Object.fromEntries(
-    (db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[]).map(r => [r.key, r.value])
-  )
+  const activeTemplateId = (db.prepare("SELECT value FROM settings WHERE key='active_template_id'").get() as { value: string } | undefined)?.value
+  const template = db.prepare('SELECT subject, body FROM templates WHERE id = ?').get(Number(activeTemplateId)) as { subject: string; body: string } | undefined
 
-  const subject = renderTemplate(settings.email_subject || '', contact)
-  const html = renderTemplate(settings.email_body || '', contact)
+  const subject = renderTemplate(template?.subject || '', contact)
+  const html = renderTemplate(template?.body || '', contact)
 
   return NextResponse.json({ subject, html, contact })
 }

@@ -4,12 +4,13 @@ import nodemailer from 'nodemailer'
 import path from 'path'
 
 const INLINE_IMAGES = [
-  { cid: 'ii_mqjfv69w0', path: path.join(process.cwd(), 'public', 'sig_ii_mqjfv69w0.jpg') },
-  { cid: 'ii_mqjfv6a81', path: path.join(process.cwd(), 'public', 'sig_ii_mqjfv6a81.jpg') },
+  { cid: 'ii_mqjfv69w0', path: path.join(process.cwd(), 'public', 'images', 'biz', 'bz_1.png') },
+  { cid: 'ii_mqjfv6a81', path: path.join(process.cwd(), 'public', 'images', 'biz', 'bz_2.png') },
+  { cid: 'ii_card_kangseungyoon', path: path.join(process.cwd(), 'public', 'images', 'biz', '대표님_명함.png') },
 ]
 
 export async function POST(req: NextRequest) {
-  const { name, email, fromAccount } = await req.json()
+  const { name, email, fromAccount, templateId } = await req.json()
   const db = getDb()
 
   // 테스트는 항상 맨 위 계정(id 최소값) 사용
@@ -19,12 +20,11 @@ export async function POST(req: NextRequest) {
   ) as Record<string, string> | undefined
   if (!account) return NextResponse.json({ success: false, error: '등록된 발송 계정이 없습니다' })
 
-  const settings = Object.fromEntries(
-    (db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[]).map(r => [r.key, r.value])
-  )
+  const activeTemplateId = templateId ?? (db.prepare("SELECT value FROM settings WHERE key='active_template_id'").get() as { value: string } | undefined)?.value
+  const template = db.prepare('SELECT subject, body FROM templates WHERE id = ?').get(Number(activeTemplateId)) as { subject: string; body: string } | undefined
 
-  const subject = settings.email_subject?.replace('{company}', '테스트회사') || '테스트 메일'
-  const html = (settings.email_body || '<p>테스트 메일입니다.</p>')
+  const subject = template?.subject?.replace('{company}', '테스트회사') || '테스트 메일'
+  const html = (template?.body || '<p>테스트 메일입니다.</p>')
     .replace(/{ceo}/g, name || '담당자')
     .replace(/{company}/g, '테스트회사')
     .replace(/{company_en}/g, 'Test Company')
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       subject, html,
       text: html.replace(/<[^>]+>/g, ''),
       attachments: INLINE_IMAGES.map(img => ({
-        filename: img.cid + '.jpg',
+        filename: path.basename(img.path),
         path: img.path,
         cid: img.cid,
         contentDisposition: 'inline' as const,

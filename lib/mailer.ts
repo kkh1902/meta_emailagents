@@ -3,8 +3,9 @@ import path from 'path'
 import { getDb } from './db'
 
 const INLINE_IMAGES = [
-  { cid: 'ii_mqjfv69w0', path: path.join(process.cwd(), 'public', 'sig_ii_mqjfv69w0.jpg') },
-  { cid: 'ii_mqjfv6a81', path: path.join(process.cwd(), 'public', 'sig_ii_mqjfv6a81.jpg') },
+  { cid: 'ii_mqjfv69w0', path: path.join(process.cwd(), 'public', 'images', 'biz', 'bz_1.png') },
+  { cid: 'ii_mqjfv6a81', path: path.join(process.cwd(), 'public', 'images', 'biz', 'bz_2.png') },
+  { cid: 'ii_card_kangseungyoon', path: path.join(process.cwd(), 'public', 'images', 'biz', '대표님_명함.png') },
 ]
 
 export function renderTemplate(template: string, contact: Record<string, string | null>): string {
@@ -38,12 +39,11 @@ export async function sendToContact(contactId: number, accountEmail?: string): P
 
   if (!account) return { success: false, error: '사용 가능한 계정 없음 (일일 한도 초과)' }
 
-  const settings = Object.fromEntries(
-    (db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[]).map(r => [r.key, r.value])
-  )
+  const activeTemplateId = (db.prepare("SELECT value FROM settings WHERE key='active_template_id'").get() as { value: string } | undefined)?.value
+  const template = db.prepare('SELECT subject, body FROM templates WHERE id = ?').get(Number(activeTemplateId)) as { subject: string; body: string }
 
-  const subject = renderTemplate(settings.email_subject, contact)
-  const html = renderTemplate(settings.email_body, contact)
+  const subject = renderTemplate(template.subject, contact)
+  const html = renderTemplate(template.body, contact)
 
   try {
     const transporter = nodemailer.createTransport({
@@ -61,7 +61,7 @@ export async function sendToContact(contactId: number, accountEmail?: string): P
       text: html.replace(/<[^>]+>/g, ''),
       headers: { 'List-Unsubscribe': `<mailto:${account.email}?subject=unsubscribe>` },
       attachments: INLINE_IMAGES.map(img => ({
-        filename: img.cid + '.jpg',
+        filename: path.basename(img.path),
         path: img.path,
         cid: img.cid,
         contentDisposition: 'inline' as const,

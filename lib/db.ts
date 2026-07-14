@@ -43,6 +43,13 @@ function initDb(db: Database.Database) {
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY, value TEXT
     );
+    CREATE TABLE IF NOT EXISTS templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      subject TEXT,
+      body TEXT,
+      created_at TEXT DEFAULT (datetime('now','localtime'))
+    );
   `)
   // 마이그레이션: subject 컬럼 추가
   try { db.exec('ALTER TABLE send_logs ADD COLUMN subject TEXT') } catch {}
@@ -53,6 +60,15 @@ function initDb(db: Database.Database) {
   insert.run('batch_times', '09:00,11:00,13:00,15:00')
   insert.run('email_subject', '[NextRise] {company} 파트너십 제안드립니다')
   insert.run('email_body', DEFAULT_TEMPLATE)
+
+  // 마이그레이션: 기존 단일 템플릿(email_subject/email_body)을 templates 테이블 "템플릿 1"로 이전
+  const templateCount = (db.prepare('SELECT COUNT(*) as c FROM templates').get() as { c: number }).c
+  if (templateCount === 0) {
+    const subject = (db.prepare("SELECT value FROM settings WHERE key='email_subject'").get() as { value: string }).value
+    const body = (db.prepare("SELECT value FROM settings WHERE key='email_body'").get() as { value: string }).value
+    const info = db.prepare('INSERT INTO templates (name, subject, body) VALUES (?, ?, ?)').run('템플릿 1', subject, body)
+    insert.run('active_template_id', String(info.lastInsertRowid))
+  }
 }
 
 const DEFAULT_TEMPLATE = `<div style="font-family:Arial,sans-serif;max-width:600px;color:#333;line-height:1.6">
